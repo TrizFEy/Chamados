@@ -5,9 +5,13 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 
 import br.com.sistemas.chamados.dto.ChamadoRequest;
 import br.com.sistemas.chamados.dto.ChamadoResponse;
+import br.com.sistemas.chamados.dto.AlterarStatusRequest;
+import br.com.sistemas.chamados.dto.AtribuirTecnicoRequest;
 import br.com.sistemas.chamados.entity.Categoria;
 import br.com.sistemas.chamados.entity.Chamado;
 import br.com.sistemas.chamados.entity.Cliente;
@@ -18,6 +22,8 @@ import br.com.sistemas.chamados.repository.CategoriaRepository;
 import br.com.sistemas.chamados.repository.ChamadoRepository;
 import br.com.sistemas.chamados.repository.ClienteRepository;
 import br.com.sistemas.chamados.repository.TecnicoRepository;
+import br.com.sistemas.chamados.exception.RegraNegocioException;
+
 
 @Service
 public class ChamadoService {
@@ -58,8 +64,8 @@ public class ChamadoService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChamadoResponse> listar() {
-        return chamadoRepository.findAll().stream().map(ChamadoResponse::de).toList();
+    public Page<ChamadoResponse> listar(Pageable pageable) {
+        return chamadoRepository.findAll(pageable).map(ChamadoResponse::de);
     }
 
     @Transactional(readOnly = true)
@@ -68,8 +74,36 @@ public class ChamadoService {
     }
 
     @Transactional
+    public ChamadoResponse atribuirTecnico(Long id, AtribuirTecnicoRequest dto) {
+        Chamado chamado = buscarEntity(id);
+        if (chamado.getStatus() == StatusChamado.FECHADO) {
+            throw new RegraNegocioException("Chamado já está fechado e não pode ser atribuído a um técnico");
+        }
+        Tecnico tecnico = buscarTecnico(dto.tecnicoId());
+
+        chamado.setTecnico(tecnico);
+        return ChamadoResponse.de(chamado);
+    }
+
+     @Transactional
+     public ChamadoResponse alterarStatus(Long id, AlterarStatusRequest dto) {
+        Chamado chamado = buscarEntity(id);
+        if (chamado.getStatus() == StatusChamado.FECHADO) {
+            throw new RegraNegocioException("Chamado já está fechado e não pode ter seu status alterado");
+        }
+        chamado.setStatus(dto.status());
+        if (dto.status() == StatusChamado.FECHADO) {
+            chamado.setDataFechamento(LocalDateTime.now());
+        }
+        return ChamadoResponse.de(chamado);
+    }
+
+    @Transactional
     public ChamadoResponse atualizar(Long id, ChamadoRequest dto) {
         Chamado chamado = buscarEntity(id);
+        if (chamado.getStatus() == StatusChamado.FECHADO) {
+            throw new RegraNegocioException("Chamado já está fechado e não pode ser atualizado");
+        }
 
         Cliente cliente = buscarCliente(dto.clienteId());
         Categoria categoria = buscarCategoria(dto.categoriaId());

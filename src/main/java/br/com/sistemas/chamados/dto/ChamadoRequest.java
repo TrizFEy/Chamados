@@ -11,7 +11,7 @@ public record ChamadoRequest(
     String titulo,
 
     @NotBlank(message = "Descrição é obrigatória")
-    @Size(max = 500,message = "Descrição deve ter no máximo 500 caracteres")
+    @Size(max = 500, message = "Descrição deve ter no máximo 500 caracteres")
     String descricao,
 
     @NotNull(message = "Prioridade é obrigatória")
