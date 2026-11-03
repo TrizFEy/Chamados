@@ -14,5 +14,5 @@ public record TecnicoRequest(
     String email,
 
     @Size(max = 20, message = "Perfil deve ter no máximo 20 caracteres")
-    String telefone
+    String perfil
 ){}

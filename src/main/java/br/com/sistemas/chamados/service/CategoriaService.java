@@ -26,7 +26,7 @@ public class CategoriaService {
         if (repository.existsByNome(dto.nome())) {
             throw new RegraNegocioException("Já existe categoria com o nome " + dto.nome());
         }
-        Categoria salvo = repository.save(new Categoriae(dto.nome(), dto.descricao()));
+        Categoria salvo = repository.save(new Categoria(dto.nome(), dto.descricao()));
         return CategoriaResponse.de(salvo);
     }
 
