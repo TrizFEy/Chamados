@@ -4,6 +4,6 @@ import br.com.sistemas.chamados.entity.Categoria;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CategoriaRepository extends JpaRepository<Categoria, Long< {
-    boolean existsByEmail(String nome);
-    boolean existsByEmailAndIdNot(String nome, Long id);
+    boolean existsByNome(String nome);
+    boolean existsByNomeAndIdNot(String nome, Long id);
 }
