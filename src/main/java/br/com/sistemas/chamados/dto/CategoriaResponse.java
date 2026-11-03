@@ -4,6 +4,6 @@ import br.com.sistemas.chamados.entity.Categoria;
 
 public record CategoriaResponse(Long id, String nome, String descricao) {
     public static CategoriaResponse de(Categoria c) {
-        return new CategoriaRespons(c.getId(), c.getNome(), c.getDescricao());
+        return new CategoriaResponse(c.getId(), c.getNome(), c.getDescricao());
     }
 }
