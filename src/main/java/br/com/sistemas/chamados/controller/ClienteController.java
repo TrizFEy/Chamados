@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import br.com.sistemas.chamados.dto.ChamadoResponse;
+import br.com.sistemas.chamados.service.ChamadoService;
 import br.com.sistemas.chamados.dto.ClienteRequest;
 import br.com.sistemas.chamados.dto.ClienteResponse;
 import br.com.sistemas.chamados.service.ClienteService;
@@ -23,9 +27,11 @@ import jakarta.validation.Valid;
 public class ClienteController {
 
     private final ClienteService service;
+    private final ChamadoService chamadoService;
 
-    public ClienteController(ClienteService service) {
+    public ClienteController(ClienteService service, ChamadoService chamadoService) {
         this.service = service;
+        this.chamadoService = chamadoService;
     }
 
     @PostMapping
@@ -38,6 +44,11 @@ public class ClienteController {
     @GetMapping
     public List<ClienteResponse> listar() {
         return service.listar();
+    }
+
+    @GetMapping("/{id}/chamados")
+    public Page<ChamadoResponse> listarChamado(@PathVariable Long id, Pageable pageable) {
+        return chamadoService.listarPorCliente(id, pageable);
     }
 
     @GetMapping("/{id}")

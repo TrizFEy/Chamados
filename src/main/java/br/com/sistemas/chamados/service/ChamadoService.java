@@ -1,7 +1,6 @@
 package br.com.sistemas.chamados.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +16,7 @@ import br.com.sistemas.chamados.entity.Chamado;
 import br.com.sistemas.chamados.entity.Cliente;
 import br.com.sistemas.chamados.entity.Tecnico;
 import br.com.sistemas.chamados.entity.enums.StatusChamado;
+import br.com.sistemas.chamados.entity.enums.Prioridade;
 import br.com.sistemas.chamados.exception.RecursoNaoEncontradoException;
 import br.com.sistemas.chamados.repository.CategoriaRepository;
 import br.com.sistemas.chamados.repository.ChamadoRepository;
@@ -64,8 +64,14 @@ public class ChamadoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ChamadoResponse> listar(Pageable pageable) {
-        return chamadoRepository.findAll(pageable).map(ChamadoResponse::de);
+    public Page<ChamadoResponse> listar(StatusChamado status, Prioridade prioridade, Long clienteId, Pageable pageable) {
+        return chamadoRepository.filtrar(status, prioridade, clienteId, pageable).map(ChamadoResponse::de);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ChamadoResponse> listarPorCliente(Long clienteId, Pageable pageable) {
+        buscarCliente(clienteId);
+        return chamadoRepository.filtrar(null, null, clienteId, pageable).map(ChamadoResponse::de);
     }
 
     @Transactional(readOnly = true)

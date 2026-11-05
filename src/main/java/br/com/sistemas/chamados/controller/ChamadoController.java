@@ -14,7 +14,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import br.com.sistemas.chamados.entity.enums.Prioridade;
+import br.com.sistemas.chamados.entity.enums.StatusChamado;
 import br.com.sistemas.chamados.dto.AtribuirTecnicoRequest;
 import br.com.sistemas.chamados.dto.AlterarStatusRequest;
 import br.com.sistemas.chamados.dto.ChamadoRequest;
@@ -40,8 +43,8 @@ public class ChamadoController {
     }
 
     @GetMapping
-    public Page<ChamadoResponse> listar(Pageable pageable) {
-        return service.listar(pageable);
+    public Page<ChamadoResponse> listar(@RequestParam(required = false) StatusChamado status, @RequestParam(required = false) Prioridade prioridade, @RequestParam(required = false) Long clienteId, Pageable pageable) {
+        return service.listar(status, prioridade, clienteId, pageable);
     }
 
     @GetMapping("/{id}")
