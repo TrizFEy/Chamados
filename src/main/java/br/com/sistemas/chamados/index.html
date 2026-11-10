@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema de Chamados</title>
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --txt:#1f2933; --mut:#6b7785; --pri:#0b6e4f; --bd:#dde3e8; --err:#b42318; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--txt); }
+  header { background:var(--pri); color:#fff; padding:14px 24px; font-size:20px; font-weight:600; }
+  nav { display:flex; gap:4px; padding:0 24px; background:#fff; border-bottom:1px solid var(--bd); flex-wrap:wrap; }
+  nav button { border:0; background:none; padding:12px 16px; cursor:pointer; font-size:15px; color:var(--mut); border-bottom:3px solid transparent; }
+  nav button.on { color:var(--pri); border-color:var(--pri); font-weight:600; }
+  main { max-width:1100px; margin:20px auto; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--bd); border-radius:10px; padding:18px; margin-bottom:16px; }
+  h2 { margin:0 0 12px; font-size:18px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--mut); gap:4px; }
+  input, select, textarea { padding:8px 10px; border:1px solid var(--bd); border-radius:6px; font:inherit; min-width:150px; }
+  textarea { width:100%; min-height:80px; }
+  button.btn { background:var(--pri); color:#fff; border:0; padding:9px 16px; border-radius:6px; cursor:pointer; font:inherit; }
+  button.btn.sec { background:#fff; color:var(--pri); border:1px solid var(--pri); }
+  button.btn:disabled { opacity:.5; cursor:default; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--bd); }
+  th { color:var(--mut); font-weight:600; font-size:12px; text-transform:uppercase; }
+  tr.click { cursor:pointer; } tr.click:hover { background:#f0f7f4; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:600; background:#e5e9ed; }
+  .ABERTO{background:#dbeafe;color:#1d4ed8} .EM_ATENDIMENTO{background:#fef3c7;color:#92400e}
+  .AGUARDANDO_CLIENTE{background:#ede9fe;color:#5b21b6} .FECHADO{background:#e5e7eb;color:#374151}
+  .CRITICA{background:#fee2e2;color:#b42318} .ALTA{background:#ffedd5;color:#c2410c}
+  .MEDIA{background:#fef9c3;color:#854d0e} .BAIXA{background:#dcfce7;color:#166534}
+  .pager { display:flex; gap:10px; align-items:center; margin-top:12px; font-size:14px; }
+  #toast { position:fixed; right:16px; bottom:16px; max-width:380px; padding:12px 16px; border-radius:8px; color:#fff; display:none; z-index:10; white-space:pre-line; }
+  #toast.ok { background:var(--pri); } #toast.err { background:var(--err); }
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; justify-content:center; align-items:flex-start; overflow:auto; padding:30px 12px; z-index:5; }
+  .modal { background:#fff; border-radius:10px; padding:22px; width:100%; max-width:720px; }
+  .com { border-left:3px solid var(--pri); padding:6px 10px; margin:8px 0; background:#f7faf9; }
+  .com small { color:var(--mut); }
+  .mut { color:var(--mut); font-size:13px; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<header>Sistema de Chamados</header>
+<nav id="nav">
+  <button data-tab="chamados" class="on">Chamados</button>
+  <button data-tab="novo">Novo chamado</button>
+  <button data-tab="clientes">Clientes</button>
+  <button data-tab="categorias">Categorias</button>
+  <button data-tab="tecnicos">Técnicos</button>
+</nav>
+<main>
+
+<!-- CHAMADOS -->
+<section id="tab-chamados">
+  <div class="card">
+    <h2>Filtros</h2>
+    <div class="row">
+      <label>Status
+        <select id="f-status"><option value="">Todos</option><option>ABERTO</option><option>EM_ATENDIMENTO</option><option>AGUARDANDO_CLIENTE</option><option>FECHADO</option></select></label>
+      <label>Prioridade
+        <select id="f-prio"><option value="">Todas</option><option>BAIXA</option><option>MEDIA</option><option>ALTA</option><option>CRITICA</option></select></label>
+      <label>Cliente <select id="f-cliente"><option value="">Todos</option></select></label>
+      <label>Ordenar por
+        <select id="f-sort"><option value="dataAbertura,desc">Mais novos</option><option value="dataAbertura,asc">Mais antigos</option><option value="prioridade,asc">Prioridade</option></select></label>
+      <label>Por página <select id="f-size"><option>5</option><option selected>10</option><option>20</option></select></label>
+      <button class="btn" id="f-aplicar">Filtrar</button>
+      <button class="btn sec" id="f-limpar">Limpar</button>
+    </div>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Título</th><th>Cliente</th><th>Prioridade</th><th>Status</th><th>Abertura</th></tr></thead>
+      <tbody id="lista-chamados"></tbody>
+    </table>
+    <div class="pager">
+      <button class="btn sec" id="pg-ant">Anterior</button>
+      <span id="pg-info" class="mut"></span>
+      <button class="btn sec" id="pg-prox">Próxima</button>
+    </div>
+  </div>
+</section>
+
+<!-- NOVO -->
+<section id="tab-novo" class="hide">
+  <div class="card">
+    <h2>Novo chamado</h2>
+    <form id="form-chamado">
+      <div class="row">
+        <label style="flex:1">Título <input id="n-titulo" maxlength="100" required></label>
+        <label>Prioridade <select id="n-prio"><option>BAIXA</option><option selected>MEDIA</option><option>ALTA</option><option>CRITICA</option></select></label>
+      </div>
+      <label style="margin-top:10px">Descrição <textarea id="n-desc" maxlength="500" required></textarea></label>
+      <div class="row" style="margin-top:10px">
+        <label>Cliente <select id="n-cliente" required></select></label>
+        <label>Categoria <select id="n-categoria" required></select></label>
+        <label>Técnico (opcional) <select id="n-tecnico"><option value="">Sem técnico</option></select></label>
+        <button class="btn" type="submit">Abrir chamado</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- CLIENTES -->
+<section id="tab-clientes" class="hide">
+  <div class="card"><h2>Novo cliente</h2>
+    <form id="form-cliente" class="row">
+      <label>Nome <input id="c-nome" maxlength="100" required></label>
+      <label>E-mail <input id="c-email" type="email" maxlength="120" required></label>
+      <label>Telefone <input id="c-tel" maxlength="20"></label>
+      <button class="btn" type="submit">Cadastrar</button>
+    </form></div>
+  <div class="card"><table><thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th></th></tr></thead><tbody id="lista-clientes"></tbody></table></div>
+</section>
+
+<!-- CATEGORIAS -->
+<section id="tab-categorias" class="hide">
+  <div class="card"><h2>Nova categoria</h2>
+    <form id="form-categoria" class="row">
+      <label>Nome <input id="k-nome" maxlength="100" required></label>
+      <label style="flex:1">Descrição <input id="k-desc" maxlength="500"></label>
+      <button class="btn" type="submit">Cadastrar</button>
+    </form></div>
+  <div class="card"><table><thead><tr><th>#</th><th>Nome</th><th>Descrição</th></tr></thead><tbody id="lista-categorias"></tbody></table></div>
+</section>
+
+<!-- TECNICOS -->
+<section id="tab-tecnicos" class="hide">
+  <div class="card"><h2>Novo técnico</h2>
+    <form id="form-tecnico" class="row">
+      <label>Nome <input id="t-nome" maxlength="100" required></label>
+      <label>E-mail <input id="t-email" type="email" maxlength="120" required></label>
+      <label>Perfil <select id="t-perfil"><option>TECNICO</option><option>ADMIN</option></select></label>
+      <button class="btn" type="submit">Cadastrar</button>
+    </form></div>
+  <div class="card"><table><thead><tr><th>#</th><th>Nome</th><th>E-mail</th><th>Perfil</th></tr></thead><tbody id="lista-tecnicos"></tbody></table></div>
+</section>
+
+</main>
+
+<!-- DETALHE -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="d-titulo"></h2>
+      <button class="btn sec" id="d-fechar">Fechar</button>
+    </div>
+    <p id="d-desc"></p>
+    <p class="mut" id="d-meta"></p>
+    <div class="row">
+      <label>Alterar status
+        <select id="d-status"><option>ABERTO</option><option>EM_ATENDIMENTO</option><option>AGUARDANDO_CLIENTE</option><option>FECHADO</option></select></label>
+      <button class="btn" id="d-salvar-status">Salvar status</button>
+      <label>Atribuir técnico <select id="d-tecnico"></select></label>
+      <button class="btn" id="d-salvar-tec">Atribuir</button>
+    </div>
+    <h2 style="margin-top:20px">Comentários</h2>
+    <div id="d-coms"></div>
+    <form id="form-com" class="row" style="margin-top:10px">
+      <label>Autor <input id="m-autor" maxlength="100" required></label>
+      <label style="flex:1">Texto <input id="m-texto" maxlength="500" required style="width:100%"></label>
+      <button class="btn" type="submit">Comentar</button>
+    </form>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = d => d ? new Date(d).toLocaleString('pt-BR') : '-';
+let toastT;
+function toast(msg, ok = true) {
+  const t = $('toast'); t.textContent = msg; t.className = ok ? 'ok' : 'err'; t.style.display = 'block';
+  clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', 4500);
+}
+
+// Chamada à API. Lança erro com a mensagem padronizada do GlobalExceptionHandler.
+async function api(url, method = 'GET', body) {
+  const r = await fetch(url, { method, headers: body ? {'Content-Type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 204) return null;
+  let data = null; try { data = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    let msg = (data && (data.erro || data.message || data.error)) || ('Erro ' + r.status);
+    if (data && data.detalhes && data.detalhes.length) msg += '\n' + data.detalhes.join('\n');
+    throw new Error(msg);
+  }
+  return data;
+}
+const lista = d => Array.isArray(d) ? d : (d && d.content) || [];
+const run = fn => async (...a) => { try { await fn(...a); } catch (e) { toast(e.message, false); } };
+
+// ---------- Abas ----------
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hide', s.id !== 'tab-' + b.dataset.tab));
+  ({chamados: carregarChamados, novo: preencherNovo, clientes: carregarClientes, categorias: carregarCategorias, tecnicos: carregarTecnicos})[b.dataset.tab]();
+});
+
+// ---------- Dados de apoio ----------
+let clientes = [], categorias = [], tecnicos = [];
+async function carregarApoio() {
+  [clientes, categorias, tecnicos] = await Promise.all([
+    api('/clientes').then(lista), api('/categorias').then(lista), api('/tecnicos').then(lista)
+  ]);
+}
+const opts = (arr, vazio) => (vazio ? `<option value="">${vazio}</option>` : '') + arr.map(x => `<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+
+// ---------- Chamados ----------
+let pagina = 0, totalPaginas = 1;
+const nomeCliente = id => (clientes.find(c => c.id === id) || {}).nome || ('#' + id);
+const carregarChamados = run(async () => {
+  await carregarApoio();
+  const sel = $('f-cliente').value;
+  $('f-cliente').innerHTML = opts(clientes, 'Todos'); $('f-cliente').value = sel;
+  const p = new URLSearchParams();
+  if ($('f-status').value) p.set('status', $('f-status').value);
+  if ($('f-prio').value) p.set('prioridade', $('f-prio').value);
+  if ($('f-cliente').value) p.set('clienteId', $('f-cliente').value);
+  p.set('page', pagina); p.set('size', $('f-size').value); p.set('sort', $('f-sort').value);
+  const d = await api('/chamados?' + p);
+  totalPaginas = d.totalPages || 1;
+  $('lista-chamados').innerHTML = d.content.map(c => `
+    <tr class="click" onclick="abrir(${c.id})">
+      <td>${c.id}</td><td>${esc(c.titulo)}</td><td>${esc(nomeCliente(c.clienteId))}</td>
+      <td><span class="tag ${c.prioridade}">${c.prioridade}</span></td>
+      <td><span class="tag ${c.status}">${c.status}</span></td><td>${fmt(c.dataAbertura)}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="mut">Nenhum chamado encontrado.</td></tr>';
+  $('pg-info').textContent = `Página ${pagina + 1} de ${totalPaginas} (${d.totalElements} chamados)`;
+  $('pg-ant').disabled = pagina <= 0; $('pg-prox').disabled = pagina >= totalPaginas - 1;
+});
+$('f-aplicar').onclick = () => { pagina = 0; carregarChamados(); };
+$('f-limpar').onclick = () => { ['f-status','f-prio','f-cliente'].forEach(i => $(i).value = ''); pagina = 0; carregarChamados(); };
+$('pg-ant').onclick = () => { pagina--; carregarChamados(); };
+$('pg-prox').onclick = () => { pagina++; carregarChamados(); };
+
+// ---------- Novo chamado ----------
+const preencherNovo = run(async () => {
+  await carregarApoio();
+  $('n-cliente').innerHTML = opts(clientes); $('n-categoria').innerHTML = opts(categorias);
+  $('n-tecnico').innerHTML = opts(tecnicos.filter(t => t.perfil === 'TECNICO' || true), 'Sem técnico');
+});
+$('form-chamado').onsubmit = run(async e => {
+  e.preventDefault();
+  const c = await api('/chamados', 'POST', {
+    titulo: $('n-titulo').value, descricao: $('n-desc').value, prioridade: $('n-prio').value,
+    clienteId: Number($('n-cliente').value), categoriaId: Number($('n-categoria').value),
+    tecnicoId: $('n-tecnico').value ? Number($('n-tecnico').value) : null
+  });
+  toast('Chamado #' + c.id + ' aberto.'); e.target.reset();
+});
+
+// ---------- Detalhe ----------
+let atual = null;
+window.abrir = run(async id => {
+  await carregarApoio();
+  atual = await api('/chamados/' + id);
+  desenharDetalhe();
+  await carregarComentarios();
+  $('overlay').style.display = 'flex';
+});
+function desenharDetalhe() {
+  const c = atual;
+  $('d-titulo').innerHTML = `#${c.id} ${esc(c.titulo)} <span class="tag ${c.status}">${c.status}</span>`;
+  $('d-desc').textContent = c.descricao;
+  const tec = tecnicos.find(t => t.id === c.tecnicoId);
+  $('d-meta').textContent = `Cliente: ${nomeCliente(c.clienteId)} | Categoria: ${(categorias.find(k => k.id === c.categoriaId) || {}).nome || c.categoriaId} | Técnico: ${tec ? tec.nome : 'não atribuído'} | Prioridade: ${c.prioridade} | Aberto em ${fmt(c.dataAbertura)}` + (c.dataFechamento ? ` | Fechado em ${fmt(c.dataFechamento)}` : '');
+  $('d-status').value = c.status;
+  $('d-tecnico').innerHTML = opts(tecnicos); if (c.tecnicoId) $('d-tecnico').value = c.tecnicoId;
+  const fechado = c.status === 'FECHADO';
+  ['d-status','d-salvar-status','d-tecnico','d-salvar-tec'].forEach(i => $(i).disabled = fechado);
+}
+async function carregarComentarios() {
+  const l = await api(`/chamados/${atual.id}/comentarios`);
+  $('d-coms').innerHTML = l.map(m => `<div class="com"><small>${esc(m.autor)} ${m.data ? '· ' + fmt(m.data) : ''}</small><div>${esc(m.texto)}</div></div>`).join('')
+    || '<p class="mut">Sem comentários.</p>';
+}
+$('d-fechar').onclick = () => { $('overlay').style.display = 'none'; carregarChamados(); };
+$('d-salvar-status').onclick = run(async () => {
+  atual = await api(`/chamados/${atual.id}/status`, 'PATCH', { status: $('d-status').value });
+  desenharDetalhe(); toast('Status atualizado.');
+});
+$('d-salvar-tec').onclick = run(async () => {
+  if (!$('d-tecnico').value) return toast('Escolha um técnico.', false);
+  atual = await api(`/chamados/${atual.id}/atribuir`, 'PATCH', { tecnicoId: Number($('d-tecnico').value) });
+  desenharDetalhe(); toast('Técnico atribuído.');
+});
+$('form-com').onsubmit = run(async e => {
+  e.preventDefault();
+  await api(`/chamados/${atual.id}/comentarios`, 'POST', { autor: $('m-autor').value, texto: $('m-texto').value });
+  $('m-texto').value = ''; await carregarComentarios(); toast('Comentário adicionado.');
+});
+
+// ---------- Clientes ----------
+const carregarClientes = run(async () => {
+  clientes = lista(await api('/clientes'));
+  $('lista-clientes').innerHTML = clientes.map(c => `<tr><td>${c.id}</td><td>${esc(c.nome)}</td><td>${esc(c.email)}</td><td>${esc(c.telefone)}</td>
+    <td><button class="btn sec" onclick="excluirCliente(${c.id})">Excluir</button></td></tr>`).join('') || '<tr><td colspan="5" class="mut">Nenhum cliente.</td></tr>';
+});
+window.excluirCliente = run(async id => { if (!confirm('Excluir cliente ' + id + '?')) return; await api('/clientes/' + id, 'DELETE'); toast('Cliente excluído.'); carregarClientes(); });
+$('form-cliente').onsubmit = run(async e => {
+  e.preventDefault();
+  await api('/clientes', 'POST', { nome: $('c-nome').value, email: $('c-email').value, telefone: $('c-tel').value });
+  e.target.reset(); toast('Cliente cadastrado.'); carregarClientes();
+});
+
+// ---------- Categorias ----------
+const carregarCategorias = run(async () => {
+  categorias = lista(await api('/categorias'));
+  $('lista-categorias').innerHTML = categorias.map(c => `<tr><td>${c.id}</td><td>${esc(c.nome)}</td><td>${esc(c.descricao)}</td></tr>`).join('') || '<tr><td colspan="3" class="mut">Nenhuma categoria.</td></tr>';
+});
+$('form-categoria').onsubmit = run(async e => {
+  e.preventDefault();
+  await api('/categorias', 'POST', { nome: $('k-nome').value, descricao: $('k-desc').value });
+  e.target.reset(); toast('Categoria cadastrada.'); carregarCategorias();
+});
+
+// ---------- Técnicos ----------
+const carregarTecnicos = run(async () => {
+  tecnicos = lista(await api('/tecnicos'));
+  $('lista-tecnicos').innerHTML = tecnicos.map(t => `<tr><td>${t.id}</td><td>${esc(t.nome)}</td><td>${esc(t.email)}</td><td>${esc(t.perfil)}</td></tr>`).join('') || '<tr><td colspan="4" class="mut">Nenhum técnico.</td></tr>';
+});
+$('form-tecnico').onsubmit = run(async e => {
+  e.preventDefault();
+  await api('/tecnicos', 'POST', { nome: $('t-nome').value, email: $('t-email').value, perfil: $('t-perfil').value });
+  e.target.reset(); toast('Técnico cadastrado.'); carregarTecnicos();
+});
+
+carregarChamados();
+</script>
+</body>
+</html>
